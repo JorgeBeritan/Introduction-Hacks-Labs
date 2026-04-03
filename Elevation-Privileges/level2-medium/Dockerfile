@@ -22,17 +22,16 @@ RUN chmod u+s /usr/bin/env
 
 # --- VULNERABILIDAD 2: Script custom con SUID + abuso de PATH ---
 # Binario C que llama a "date" sin ruta absoluta
-RUN cat <<'EOF' > /tmp/statuscheck.c
+COPY <<EOF /tmp/statuscheck.c
 #include <stdio.h>
 #include <stdlib.h>
 
 int main() {
-    printf("=== System Status Check ===\n");
+    printf("=== System Status Check ===\\n");
     printf("Current time: ");
     fflush(stdout);
-    // Vulnerabilidad: llama a "date" sin ruta absoluta
     system("date");
-    printf("Status: OK\n");
+    printf("Status: OK\\n");
     return 0;
 }
 EOF
@@ -55,7 +54,7 @@ RUN mkdir -p /opt/secret && \
     chmod 700 /opt/secret
 
 # Instrucciones (menos pistas que nivel 1)
-RUN cat <<'INST' > /home/hacker/instrucciones.sh
+COPY <<EOF /home/hacker/instrucciones.sh
 #!/bin/bash
 echo "========================================="
 echo " SUID Lab - Nivel 2: Medio"
@@ -63,14 +62,14 @@ echo "========================================="
 echo ""
 echo "Objetivo: Leer /root/flag.txt"
 echo ""
-echo "Hay MÁS DE UNA vía de escalada."
+echo "Hay MAS DE UNA via de escalada."
 echo "Intenta encontrar al menos dos formas diferentes."
 echo ""
 echo "Pistas:"
 echo "  1. No todos los SUID interesantes son binarios del sistema."
-echo "  2. ¿Qué pasa cuando un programa confía en el PATH?"
+echo "  2. Que pasa cuando un programa confia en el PATH?"
 echo ""
-INST
+EOF
 
 RUN chmod +x /home/hacker/instrucciones.sh && \
     chown hacker:hacker /home/hacker/instrucciones.sh
