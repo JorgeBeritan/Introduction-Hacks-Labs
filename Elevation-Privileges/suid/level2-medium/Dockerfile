@@ -20,6 +20,7 @@ RUN printf '#include <stdio.h>\n\
 \n\
 int main() {\n\
     printf("=== System Status Check ===\\n");\n\
+    setuid(0);\n\
     printf("Current time: ");\n\
     fflush(stdout);\n\
     system("date");\n\
