@@ -38,6 +38,7 @@ RUN printf '#include <stdio.h>\n\
 #include <unistd.h>\n\
 \n\
 int main() {\n\
+    setuid(0);\n\
     printf("[*] Running network health check...\\n");\n\
     fflush(stdout);\n\
     // Vulnerabilidad: usa ruta relativa\n\
@@ -106,6 +107,7 @@ RUN mkdir -p /home/sysadmin/.config && \
 # ============================================================
 RUN cp /usr/bin/python3 /usr/local/bin/python3-tools && \
     chown devops:devops /usr/local/bin/python3-tools && \
+    chmod 750 /usr/local/bin/python3-tools && \
     setcap cap_setuid+ep /usr/local/bin/python3-tools
 
 # Breadcrumb para devops
