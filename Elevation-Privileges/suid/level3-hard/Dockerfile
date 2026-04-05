@@ -9,7 +9,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y \
     sudo vim nano gcc python3 coreutils \
-    findutils net-tools libcap2-bin \
+    findutils net-tools libcap2-bin  openssl\
     && rm -rf /var/lib/apt/lists/*
 
 # ============================================================
@@ -36,9 +36,12 @@ RUN useradd -m -s /bin/bash devops && \
 RUN printf '#include <stdio.h>\n\
 #include <stdlib.h>\n\
 #include <unistd.h>\n\
+#include <sys/types.h>\n\
 \n\
 int main() {\n\
-    setuid(0);\n\
+    // Igualamos el Real UID al Effective UID (sysadmin)\n\
+    setuid(geteuid());\n\
+    \n\
     printf("[*] Running network health check...\\n");\n\
     fflush(stdout);\n\
     // Vulnerabilidad: usa ruta relativa\n\
