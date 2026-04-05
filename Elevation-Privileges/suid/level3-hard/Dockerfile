@@ -91,17 +91,6 @@ echo ""\n' > /home/hacker/instrucciones.sh && \
 # ============================================================
 RUN echo "sysadmin ALL=(devops) NOPASSWD: /usr/bin/find" >> /etc/sudoers
 
-# Archivo "secreto" de sysadmin como breadcrumb
-RUN mkdir -p /home/sysadmin/.config && \
-    printf '# Nota personal:\n\
-# Me dieron acceso sudo limitado para buscar archivos\n\
-# del equipo devops cuando necesito auditar.\n\
-# Comando: sudo -u devops /usr/bin/find ...\n\
-# No creo que sea un riesgo de seguridad.\n' \
-    > /home/sysadmin/.config/notas.txt && \
-    chown -R sysadmin:sysadmin /home/sysadmin/.config && \
-    chmod 600 /home/sysadmin/.config/notas.txt
-
 # ============================================================
 # ETAPA 3: devops -> root
 # Tecnica: Capability cap_setuid en python3
