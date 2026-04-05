@@ -27,7 +27,31 @@ RUN useradd -m -s /bin/bash sysadmin && \
 RUN useradd -m -s /bin/bash devops && \
     echo "devops:$(openssl rand -hex 16)" | chpasswd
 
+# ============================================================
+# ETAPA 1: hacker -> sysadmin
+# Tecnica: SUID en binario custom que ejecuta un script
+#          usando ruta relativa. El binario usa setreuid()
+#          para que bash no pueda droppear privilegios.
+#
+# Vulnerabilidad: El binario busca "./scripts/netcheck.sh"
+#   relativo al CWD. Si el atacante crea su propio
+#   ./scripts/netcheck.sh y ejecuta healthcheck desde ahi,
+#   obtiene shell como sysadmin.
+#
+# Solucion del lab:
+#   cd /tmp
+#   mkdir -p scripts
+#   echo '#!/bin/bash' > scripts/netcheck.sh
+#   echo 'bash -p' >> scripts/netcheck.sh   (o /bin/bash -p)
+#   chmod +x scripts/netcheck.sh
+#   /usr/local/bin/healthcheck
+#   -> shell como sysadmin
+# ============================================================
 
+# Binario SUID owned by sysadmin que ejecuta un "health check"
+# FIX: Usa setreuid(1001,1001) y setregid(1001,1001) hardcodeados
+#      para fijar uid/gid real y efectivo a sysadmin ANTES del exec.
+#      Esto garantiza que bash no droppee privilegios.
 RUN printf '#include <stdio.h>\n\
 #include <stdlib.h>\n\
 #include <unistd.h>\n\
@@ -36,20 +60,11 @@ int main() {\n\
     printf("[*] Running network health check...\\n");\n\
     fflush(stdout);\n\
     \n\
-    // BUG de seguridad: setreuid() fija el UID real al efectivo\n\
-    // Esto hace que el privilegio sea "sticky" y no se pierda\n\
-    // al ejecutar scripts con bash.\n\
-    uid_t euid = geteuid();\n\
-    setreuid(euid, euid);\n\
+    setregid(1001, 1001);\n\
+    setreuid(1001, 1001);\n\
     \n\
-    // BUG de seguridad: ruta relativa al CWD\n\
-    // Un atacante puede crear ./scripts/netcheck.sh en un\n\
-    // directorio que controle y ejecutar este binario desde ahi.\n\
-    char *args[] = {"netcheck.sh", NULL};\n\
-    char *envp[] = {NULL};\n\
-    execve("./scripts/netcheck.sh", args, envp);\n\
-    perror("exec failed");\n\
-    return 1;\n\
+    system("./scripts/netcheck.sh");\n\
+    return 0;\n\
 }\n' > /tmp/healthcheck.c && \
     gcc /tmp/healthcheck.c -o /usr/local/bin/healthcheck && \
     chown sysadmin:sysadmin /usr/local/bin/healthcheck && \
