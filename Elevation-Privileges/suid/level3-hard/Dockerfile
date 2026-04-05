@@ -9,7 +9,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y \
     sudo vim nano gcc python3 coreutils \
-    findutils net-tools libcap2-bin \
+    findutils net-tools libcap2-bin openssl\
     && rm -rf /var/lib/apt/lists/*
 
 # ============================================================
