@@ -9,7 +9,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y \
     sudo vim nano gcc python3 coreutils \
-    findutils net-tools libcap2-bin  openssl\
+    findutils net-tools libcap2-bin \
     && rm -rf /var/lib/apt/lists/*
 
 # ============================================================
@@ -36,17 +36,15 @@ RUN useradd -m -s /bin/bash devops && \
 RUN printf '#include <stdio.h>\n\
 #include <stdlib.h>\n\
 #include <unistd.h>\n\
-#include <sys/types.h>\n\
 \n\
 int main() {\n\
-    // Igualamos el Real UID al Effective UID (sysadmin)\n\
-    setuid(geteuid());\n\
-    \n\
     printf("[*] Running network health check...\\n");\n\
     fflush(stdout);\n\
-    // Vulnerabilidad: usa ruta relativa\n\
-    system("./scripts/netcheck.sh");\n\
-    return 0;\n\
+    // Vulnerabilidad: usa ruta relativa + execvp mantiene SUID\n\
+    char *args[] = {"netcheck.sh", NULL};\n\
+    execvp("./scripts/netcheck.sh", args);\n\
+    perror("exec failed");\n\
+    return 1;\n\
 }\n' > /tmp/healthcheck.c && \
     gcc /tmp/healthcheck.c -o /usr/local/bin/healthcheck && \
     chown sysadmin:sysadmin /usr/local/bin/healthcheck && \
@@ -110,7 +108,6 @@ RUN mkdir -p /home/sysadmin/.config && \
 # ============================================================
 RUN cp /usr/bin/python3 /usr/local/bin/python3-tools && \
     chown devops:devops /usr/local/bin/python3-tools && \
-    chmod 750 /usr/local/bin/python3-tools && \
     setcap cap_setuid+ep /usr/local/bin/python3-tools
 
 # Breadcrumb para devops
