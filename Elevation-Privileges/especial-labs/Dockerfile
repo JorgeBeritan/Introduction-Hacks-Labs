@@ -124,34 +124,34 @@ RUN echo "Hint: There's a backup script you can run as another user." > /home/us
 # ============================================================
 
 # Crear el programa vulnerable en C (usamos comillas simples en printf y escapamos los \n internos del C a \\n)
-RUN printf '#include <stdio.h>\n\
-#include <stdlib.h>\n\
-#include <dlfcn.h>\n\
-\n\
-int main() {\n\
-    void *handle;\n\
-    void (*run_check)();\n\
-    \n\
-    printf("[*] Health Check Utility v1.0\\n");\n\
-    printf("[*] Loading monitoring library...\\n");\n\
-    \n\
-    // Intenta cargar desde /opt/lib/ primero (path hijackeable)\n\
-    handle = dlopen("/opt/lib/libmonitor.so", RTLD_LAZY);\n\
-    \n\
-    if (!handle) {\n\
-        printf("[-] Custom monitor not found, using defaults.\\n");\n\
-        printf("[*] System OK (default check)\\n");\n\
-        return 0;\n\
-    }\n\
-    \n\
-    run_check = dlsym(handle, "run_check");\n\
-    if (run_check) {\n\
-        run_check();\n\
-    }\n\
-    \n\
-    dlclose(handle);\n\
-    return 0;\n\
-}\n' > /tmp/health_check.c
+RUN echo '#include <stdio.h>' > /tmp/health_check.c && \
+    echo '#include <stdlib.h>' >> /tmp/health_check.c && \
+    echo '#include <dlfcn.h>' >> /tmp/health_check.c && \
+    echo '' >> /tmp/health_check.c && \
+    echo 'int main() {' >> /tmp/health_check.c && \
+    echo '    void *handle;' >> /tmp/health_check.c && \
+    echo '    void (*run_check)();' >> /tmp/health_check.c && \
+    echo '    ' >> /tmp/health_check.c && \
+    echo '    printf("[*] Health Check Utility v1.0\\n");' >> /tmp/health_check.c && \
+    echo '    printf("[*] Loading monitoring library...\\n");' >> /tmp/health_check.c && \
+    echo '    ' >> /tmp/health_check.c && \
+    echo '    // Intenta cargar desde /opt/lib/ primero (path hijackeable)' >> /tmp/health_check.c && \
+    echo '    handle = dlopen("/opt/lib/libmonitor.so", RTLD_LAZY);' >> /tmp/health_check.c && \
+    echo '    ' >> /tmp/health_check.c && \
+    echo '    if (!handle) {' >> /tmp/health_check.c && \
+    echo '        printf("[-] Custom monitor not found, using defaults.\\n");' >> /tmp/health_check.c && \
+    echo '        printf("[*] System OK (default check)\\n");' >> /tmp/health_check.c && \
+    echo '        return 0;' >> /tmp/health_check.c && \
+    echo '    }' >> /tmp/health_check.c && \
+    echo '    ' >> /tmp/health_check.c && \
+    echo '    run_check = dlsym(handle, "run_check");' >> /tmp/health_check.c && \
+    echo '    if (run_check) {' >> /tmp/health_check.c && \
+    echo '        run_check();' >> /tmp/health_check.c && \
+    echo '    }' >> /tmp/health_check.c && \
+    echo '    ' >> /tmp/health_check.c && \
+    echo '    dlclose(handle);' >> /tmp/health_check.c && \
+    echo '    return 0;' >> /tmp/health_check.c && \
+    echo '}' >> /tmp/health_check.c
 
 # Compilar el binario y configurar SUID para user4
 RUN gcc -o /usr/local/bin/health_check /tmp/health_check.c -ldl && \
