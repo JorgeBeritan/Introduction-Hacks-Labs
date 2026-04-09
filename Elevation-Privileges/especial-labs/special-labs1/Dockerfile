@@ -61,7 +61,7 @@ RUN mkdir -p /home/user2/.ssh && \
 
 # Simular la filtración de la clave en un log del sistema
 RUN mkdir -p /var/log/custom_app && \
-    echo "ERROR: Fallo al sincronizar credenciales. Dumping private key for debug:" > /var/log/custom_app/sync.log && \
+    echo "ERROR: Fallo al sincronizar credenciales del user2. Dumping private key for debug:" > /var/log/custom_app/sync.log && \
     cat /home/user2/.ssh/id_rsa >> /var/log/custom_app/sync.log && \
     chown root:adm /var/log/custom_app/sync.log && \
     chmod 640 /var/log/custom_app/sync.log
